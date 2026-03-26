@@ -535,29 +535,62 @@
     .toast.show { transform: translateX(-50%) translateY(0); }
 
     /* API 配置区 */
-    #apiConfig summary { display:none; }
-    #apiConfig[open] summary { display:list-item; }
-    details#apiConfig { border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    details#apiConfig { border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-top:16px; }
+    details#apiConfig[open] { border-color: rgba(0,245,255,0.3); box-shadow: 0 0 20px rgba(0,245,255,0.06); }
     .api-summary {
-      padding: 10px 16px;
+      padding: 12px 16px;
       cursor: pointer;
       font-family: 'Orbitron', monospace;
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
       list-style: none;
       display: flex;
       align-items: center;
       gap: 8px;
       background: rgba(0,245,255,0.02);
-      transition: color 0.2s;
+      transition: color 0.2s, background 0.2s;
+      user-select: none;
     }
-    .api-summary:hover { color: var(--neon); }
-    .api-summary::marker { display: none; }
-    details#apiConfig summary { display: block; }
-    .api-body { padding: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+    .api-summary:hover { color: var(--neon); background: rgba(0,245,255,0.04); }
+    .api-summary::marker, .api-summary::-webkit-details-marker { display: none; }
+    .api-body { padding: 18px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 14px; }
     .api-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 500px) { .api-row { grid-template-columns: 1fr; } }
+
+    /* 服务商选择器 */
+    .provider-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .provider-item {
+      flex: 1; min-width: 80px;
+      padding: 10px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      background: rgba(0,245,255,0.02);
+    }
+    .provider-item:hover { border-color: rgba(0,245,255,0.3); background: rgba(0,245,255,0.05); }
+    .provider-item.active { border-color: var(--neon); background: rgba(0,245,255,0.08); box-shadow: 0 0 10px rgba(0,245,255,0.1); }
+    .provider-name { font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .provider-item.active .provider-name { color: var(--neon); }
+    .provider-desc { font-size: 0.68rem; color: var(--text-muted); }
+
+    .btn-save-api {
+      background: linear-gradient(135deg, rgba(0,245,255,0.15), rgba(123,47,255,0.15));
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      padding: 0 18px;
+      height: 42px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.78rem;
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+    }
+    .btn-save-api:hover { background: rgba(0,245,255,0.2); box-shadow: 0 0 12px rgba(0,245,255,0.2); }
 
     /* 品牌调性选择器 */
     .tone-grid {
@@ -710,26 +743,74 @@
 
     <!-- API 配置 -->
     <details id="apiConfig" style="margin-top:16px">
-      <summary class="api-summary">⚙ AI 配置（接入真实大模型）</summary>
+      <summary class="api-summary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        接入真实 AI · 根据任意输入动态生成命名
+        <span id="aiStatusBadge" style="margin-left:auto;font-size:0.65rem;padding:2px 8px;border-radius:4px;background:rgba(255,165,0,0.15);color:#ffa500;border:1px solid rgba(255,165,0,0.3)">未配置</span>
+      </summary>
       <div class="api-body">
-        <div class="api-row">
-          <div>
-            <label>API Base URL</label>
-            <input id="apiBase" type="text" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1"/>
-          </div>
-          <div>
-            <label>Model</label>
-            <input id="apiModel" type="text" placeholder="gpt-4o-mini" value="gpt-4o-mini"/>
-          </div>
-        </div>
+        <!-- 快捷服务商选择 -->
         <div>
-          <label>API Key <span style="color:var(--text-muted);font-size:0.75rem">（仅存于浏览器本地，不上传）</span></label>
-          <div style="display:flex;gap:8px">
-            <input id="apiKey" type="password" placeholder="sk-..." style="flex:1"/>
-            <button onclick="saveApiConfig()" style="background:rgba(0,245,255,0.1);border:1px solid var(--neon);color:var(--neon);padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-size:0.8rem">保存</button>
+          <label style="margin-bottom:8px;display:block">选择 AI 服务商</label>
+          <div class="provider-grid">
+            <div class="provider-item active" onclick="selectProvider(this,'https://api.deepseek.com/v1','deepseek-chat','DeepSeek')">
+              <div class="provider-name">DeepSeek</div>
+              <div class="provider-desc">¥0.001/次 · 推荐</div>
+            </div>
+            <div class="provider-item" onclick="selectProvider(this,'https://open.bigmodel.cn/api/paas/v4','glm-4-flash','智谱 GLM')">
+              <div class="provider-name">智谱 GLM</div>
+              <div class="provider-desc">免费额度可用</div>
+            </div>
+            <div class="provider-item" onclick="selectProvider(this,'https://api.moonshot.cn/v1','moonshot-v1-8k','月之暗面')">
+              <div class="provider-name">月之暗面</div>
+              <div class="provider-desc">Kimi · 中文强</div>
+            </div>
+            <div class="provider-item" onclick="selectProvider(this,'https://api.openai.com/v1','gpt-4o-mini','OpenAI')">
+              <div class="provider-name">OpenAI</div>
+              <div class="provider-desc">GPT-4o mini</div>
+            </div>
+            <div class="provider-item" onclick="selectProvider(this,'custom','','自定义')">
+              <div class="provider-name">自定义</div>
+              <div class="provider-desc">手动填写</div>
+            </div>
           </div>
         </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:8px">兼容所有 OpenAI 格式接口：OpenAI / DeepSeek / 智谱 / 月之暗面 / 本地 Ollama 等。未配置时使用内置示例数据。</p>
+
+        <div id="customBaseRow" style="display:none">
+          <div class="api-row">
+            <div>
+              <label>API Base URL</label>
+              <input id="apiBase" type="text" placeholder="https://api.openai.com/v1"/>
+            </div>
+            <div>
+              <label>Model</label>
+              <input id="apiModel" type="text" placeholder="gpt-4o-mini"/>
+            </div>
+          </div>
+        </div>
+        <div id="presetBaseRow">
+          <div class="api-row">
+            <div>
+              <label>API Base URL</label>
+              <input id="apiBaseDisplay" type="text" readonly style="opacity:0.5;cursor:default"/>
+            </div>
+            <div>
+              <label>Model</label>
+              <input id="apiModelDisplay" type="text" readonly style="opacity:0.5;cursor:default"/>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label>API Key <span style="color:var(--text-muted);font-size:0.75rem">（仅在浏览器本地存储，不会上传任何服务器）</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="apiKey" type="password" placeholder="粘贴你的 API Key…" style="flex:1"/>
+            <button onclick="saveApiConfig()" class="btn-save-api">保存并启用</button>
+          </div>
+          <p id="apiHint" style="font-size:0.73rem;color:var(--text-muted);margin-top:6px">
+            → <a id="apiGetLink" href="https://platform.deepseek.com/api-keys" target="_blank" style="color:var(--neon)">获取 DeepSeek API Key（免费注册）</a>
+          </p>
+        </div>
       </div>
     </details>
 
@@ -943,23 +1024,87 @@ function calcTotal(scores) {
   return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 }
 
+// ── 服务商预设 ───────────────────────────────────────────
+const PROVIDERS = {
+  'DeepSeek':  { base: 'https://api.deepseek.com/v1',            model: 'deepseek-chat',    link: 'https://platform.deepseek.com/api-keys',          hint: '获取 DeepSeek API Key（免费注册，极低价格）' },
+  '智谱 GLM':  { base: 'https://open.bigmodel.cn/api/paas/v4',   model: 'glm-4-flash',      link: 'https://open.bigmodel.cn/usercenter/apikeys',     hint: '获取智谱 GLM API Key（有免费额度）' },
+  '月之暗面':  { base: 'https://api.moonshot.cn/v1',             model: 'moonshot-v1-8k',   link: 'https://platform.moonshot.cn/console/api-keys',  hint: '获取 Kimi API Key' },
+  'OpenAI':    { base: 'https://api.openai.com/v1',              model: 'gpt-4o-mini',      link: 'https://platform.openai.com/api-keys',           hint: '获取 OpenAI API Key' },
+  '自定义':    { base: '',                                         model: '',                 link: '',                                                hint: '填写自定义 API Base URL 和 Model' },
+};
+let currentProvider = 'DeepSeek';
+
+function selectProvider(el, base, model, name) {
+  document.querySelectorAll('.provider-item').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentProvider = name;
+  const isCustom = name === '自定义';
+  document.getElementById('customBaseRow').style.display = isCustom ? '' : 'none';
+  document.getElementById('presetBaseRow').style.display = isCustom ? 'none' : '';
+  if (!isCustom) {
+    document.getElementById('apiBaseDisplay').value  = base;
+    document.getElementById('apiModelDisplay').value = model;
+  }
+  const p = PROVIDERS[name];
+  if (p?.link) {
+    document.getElementById('apiGetLink').href        = p.link;
+    document.getElementById('apiGetLink').textContent = p.hint;
+  }
+  document.getElementById('apiHint').style.display = p?.link ? '' : 'none';
+}
+
 // ── API 配置持久化 ───────────────────────────────────────
 function saveApiConfig() {
-  localStorage.setItem('ng_api_base', document.getElementById('apiBase').value.trim());
-  localStorage.setItem('ng_api_key',  document.getElementById('apiKey').value.trim());
-  localStorage.setItem('ng_api_model',document.getElementById('apiModel').value.trim());
-  showToast('✓ 配置已保存到本地');
+  const isCustom = currentProvider === '自定义';
+  const base  = isCustom
+    ? document.getElementById('apiBase').value.trim()
+    : document.getElementById('apiBaseDisplay').value.trim();
+  const model = isCustom
+    ? document.getElementById('apiModel').value.trim()
+    : document.getElementById('apiModelDisplay').value.trim();
+  const key   = document.getElementById('apiKey').value.trim();
+  if (!key) { showToast('⚠ 请先填入 API Key'); return; }
+  localStorage.setItem('ng_api_base',     base);
+  localStorage.setItem('ng_api_key',      key);
+  localStorage.setItem('ng_api_model',    model);
+  localStorage.setItem('ng_api_provider', currentProvider);
+  updateAiStatusBadge(true);
+  showToast('✓ AI 配置已保存，任意输入都将实时生成');
 }
+
 function loadApiConfig() {
-  const base  = localStorage.getItem('ng_api_base');
-  const key   = localStorage.getItem('ng_api_key');
-  const model = localStorage.getItem('ng_api_model');
-  if (base)  document.getElementById('apiBase').value  = base;
-  if (key)   document.getElementById('apiKey').value   = key;
-  if (model) document.getElementById('apiModel').value = model;
-  // 有 key 时自动展开配置区
-  if (key) document.getElementById('apiConfig').open = true;
+  const key      = localStorage.getItem('ng_api_key');
+  const provider = localStorage.getItem('ng_api_provider') || 'DeepSeek';
+  // 找到对应的 provider-item 并激活
+  document.querySelectorAll('.provider-item').forEach(el => {
+    if (el.querySelector('.provider-name')?.textContent === provider) {
+      const p = PROVIDERS[provider];
+      if (p) selectProvider(el, p.base, p.model, provider);
+    }
+  });
+  if (key) {
+    document.getElementById('apiKey').value = key;
+    document.getElementById('apiConfig').open = true;
+    updateAiStatusBadge(true);
+  }
 }
+
+function updateAiStatusBadge(enabled) {
+  const badge = document.getElementById('aiStatusBadge');
+  if (!badge) return;
+  if (enabled) {
+    badge.textContent = '✓ 已启用';
+    badge.style.background = 'rgba(0,245,255,0.1)';
+    badge.style.color = 'var(--neon)';
+    badge.style.borderColor = 'rgba(0,245,255,0.3)';
+  } else {
+    badge.textContent = '未配置';
+    badge.style.background = 'rgba(255,165,0,0.15)';
+    badge.style.color = '#ffa500';
+    badge.style.borderColor = 'rgba(255,165,0,0.3)';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', loadApiConfig);
 
 // ── AI 生成 Prompt ────────────────────────────────────────
@@ -994,9 +1139,9 @@ async function generate() {
   if (!desc) { showToast('⚠ 请输入功能描述'); return; }
   const tone     = document.getElementById('tone').value;
   const audience = document.getElementById('audience').value.trim();
-  const apiKey   = (localStorage.getItem('ng_api_key') || document.getElementById('apiKey').value).trim();
-  const apiBase  = (localStorage.getItem('ng_api_base') || document.getElementById('apiBase').value).trim() || 'https://api.openai.com/v1';
-  const apiModel = (localStorage.getItem('ng_api_model') || document.getElementById('apiModel').value).trim() || 'gpt-4o-mini';
+  const apiKey   = localStorage.getItem('ng_api_key') || document.getElementById('apiKey').value.trim();
+  const apiBase  = localStorage.getItem('ng_api_base')  || 'https://api.deepseek.com/v1';
+  const apiModel = localStorage.getItem('ng_api_model') || 'deepseek-chat';
 
   const btn     = document.getElementById('generateBtn');
   const btnText = document.getElementById('btnText');
@@ -1015,7 +1160,7 @@ async function generate() {
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     btn.disabled = false;
     btnText.textContent = '▶ REGENERATE';
-    showToast('💡 未配置 API Key，使用内置示例数据（点击⚙配置真实AI）');
+    showToast('💡 点击「接入真实 AI」配置 API Key，可对任意输入生成命名');
     return;
   }
 
