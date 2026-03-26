@@ -4,130 +4,535 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>产品功能命名生成器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #6c63ff;
-      --primary-light: #a29bfe;
-      --bg: #f8f9ff;
-      --card: #ffffff;
-      --text: #2d3436;
-      --text-muted: #636e72;
-      --border: #dfe6e9;
-      --radius: 12px;
-      --shadow: 0 4px 20px rgba(108,99,255,0.08);
+      --neon: #00f5ff;
+      --neon2: #7b2fff;
+      --neon3: #ff2d78;
+      --bg: #050b18;
+      --bg2: #0a1628;
+      --bg3: #0d1f3c;
+      --card: rgba(10, 22, 40, 0.85);
+      --border: rgba(0, 245, 255, 0.15);
+      --border-hover: rgba(0, 245, 255, 0.5);
+      --text: #e8f4ff;
+      --text-muted: #7a9cc0;
+      --radius: 14px;
+      --glow: 0 0 20px rgba(0, 245, 255, 0.2);
+      --glow-strong: 0 0 40px rgba(0, 245, 255, 0.35);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      font-family: 'Inter', 'Noto Sans SC', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      overflow-x: hidden;
     }
+
+    /* 背景网格动效 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(ellipse at 20% 20%, rgba(123,47,255,0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(0,245,255,0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
     header {
-      background: linear-gradient(135deg, var(--primary) 0%, #a29bfe 100%);
-      color: white;
-      padding: 40px 24px 60px;
+      position: relative;
+      z-index: 1;
+      padding: 56px 24px 80px;
       text-align: center;
+      background: linear-gradient(180deg, rgba(123,47,255,0.12) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
     }
-    header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-    header p { opacity: 0.85; font-size: 1rem; }
-    .container { max-width: 900px; margin: -32px auto 40px; padding: 0 16px; }
+
+    .header-chip {
+      display: inline-block;
+      padding: 4px 14px;
+      border: 1px solid var(--neon);
+      border-radius: 20px;
+      font-size: 0.72rem;
+      color: var(--neon);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      font-family: 'Orbitron', monospace;
+      box-shadow: 0 0 12px rgba(0,245,255,0.2);
+    }
+
+    header h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #fff 30%, var(--neon) 70%, var(--neon2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      letter-spacing: 0.03em;
+    }
+
+    .scan-line {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon), transparent);
+      animation: scanPulse 3s ease-in-out infinite;
+    }
+    @keyframes scanPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 940px;
+      margin: -36px auto 60px;
+      padding: 0 16px;
+    }
+
     .card {
       background: var(--card);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
       padding: 28px;
       margin-bottom: 20px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.05);
+      transition: border-color 0.3s;
     }
-    .card h2 { font-size: 1.1rem; color: var(--primary); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
-    label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .card:hover { border-color: rgba(0,245,255,0.25); }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-family: 'Orbitron', monospace;
+      color: var(--neon);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: 'Orbitron', monospace;
+    }
+
     textarea, input, select {
-      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: 0.95rem; font-family: inherit; color: var(--text); background: #fafbff;
-      transition: border-color 0.2s; margin-bottom: 16px;
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(0,245,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: 'Inter', 'Noto Sans SC', sans-serif;
+      color: var(--text);
+      transition: all 0.25s;
+      margin-bottom: 20px;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
     }
-    textarea:focus, input:focus, select:focus { outline: none; border-color: var(--primary); background: white; }
     textarea { resize: vertical; min-height: 90px; }
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--neon);
+      background: rgba(0,245,255,0.06);
+      box-shadow: 0 0 0 3px rgba(0,245,255,0.08), 0 0 20px rgba(0,245,255,0.1);
+    }
+    textarea::placeholder, input::placeholder { color: rgba(122,156,192,0.5); }
+    select option { background: #0d1f3c; color: var(--text); }
+
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
-    .btn-primary { background: linear-gradient(135deg, var(--primary), #a29bfe); color: white; width: 100%; justify-content: center; }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.35); }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    .examples { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .example-tag { padding: 5px 12px; background: #f0eeff; color: var(--primary); border-radius: 20px; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--primary-light); transition: all 0.15s; }
-    .example-tag:hover { background: var(--primary); color: white; }
+
+    .examples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .example-tag {
+      padding: 6px 14px;
+      background: rgba(0,245,255,0.05);
+      color: var(--neon);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      border: 1px solid rgba(0,245,255,0.2);
+      transition: all 0.2s;
+      font-family: 'Noto Sans SC', sans-serif;
+      letter-spacing: 0.02em;
+    }
+    .example-tag:hover {
+      background: rgba(0,245,255,0.12);
+      border-color: var(--neon);
+      box-shadow: 0 0 12px rgba(0,245,255,0.15);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 15px 28px;
+      background: linear-gradient(135deg, var(--neon2) 0%, var(--neon) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      transition: left 0.4s;
+    }
+    .btn-primary:hover::before { left: 100%; }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,245,255,0.3), 0 0 60px rgba(123,47,255,0.2);
+    }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* 结果区 */
     #results { display: none; }
-    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-    .results-header h2 { color: var(--text); font-size: 1.2rem; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
     .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-    .tab { padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--text-muted); transition: all 0.15s; }
-    .tab.active, .tab:hover { background: var(--primary); color: white; border-color: var(--primary); }
-    .names-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-    .name-card { background: white; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.2s; cursor: pointer; }
-    .name-card:hover { border-color: var(--primary); box-shadow: 0 4px 16px rgba(108,99,255,0.12); transform: translateY(-2px); }
-    .name-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
-    .name-text { font-size: 1.3rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
-    .name-type { font-size: 0.72rem; padding: 3px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; margin-left: 8px; flex-shrink: 0; }
-    .type-direct { background: #e3f9e5; color: #2d9e42; }
-    .type-metaphor { background: #fff3e0; color: #e67e22; }
-    .type-emotion { background: #fce4ec; color: #c0392b; }
-    .type-verb { background: #e8f4fd; color: #2980b9; }
-    .name-reason { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
-    .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .score-item { font-size: 0.78rem; }
-    .score-label { color: var(--text-muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
-    .score-bar-wrap { background: #eee; border-radius: 4px; height: 5px; }
-    .score-bar { height: 5px; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--primary-light)); transition: width 0.8s ease; }
-    .feasibility { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
-    .badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
-    .badge-good { background: #e3f9e5; color: #2d9e42; }
-    .badge-mid { background: #fff3e0; color: #e67e22; }
-    .badge-bad { background: #fce4ec; color: #c0392b; }
-    .total-score { font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-top: 10px; }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .tab {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      font-family: 'Noto Sans SC', sans-serif;
+      letter-spacing: 0.05em;
+    }
+    .tab.active, .tab:hover {
+      background: rgba(0,245,255,0.1);
+      color: var(--neon);
+      border-color: rgba(0,245,255,0.4);
+      box-shadow: 0 0 10px rgba(0,245,255,0.1);
+    }
+
+    .names-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 16px;
+    }
+
+    .name-card {
+      background: rgba(0,245,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .name-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .name-card:hover {
+      border-color: rgba(0,245,255,0.4);
+      background: rgba(0,245,255,0.05);
+      box-shadow: var(--glow);
+      transform: translateY(-3px);
+    }
+    .name-card:hover::before { opacity: 1; }
+    .name-card.selected {
+      border-color: var(--neon);
+      box-shadow: var(--glow-strong);
+    }
+
+    .name-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .name-left { display: flex; align-items: center; gap: 8px; }
+
+    .rank-badge {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-align: center;
+      line-height: 24px;
+      flex-shrink: 0;
+      font-family: 'Orbitron', monospace;
+    }
+    .rank-1 { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #4a2800; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
+    .rank-2 { background: linear-gradient(135deg, #c0c0c0, #888); color: #333; }
+    .rank-3 { background: linear-gradient(135deg, #cd7f32, #a0522d); color: #fff; }
+    .rank-other { background: rgba(0,245,255,0.1); color: var(--neon); border: 1px solid rgba(0,245,255,0.2); }
+
+    .name-text {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.03em;
+    }
+
+    .name-type {
+      font-size: 0.68rem;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-weight: 600;
+      white-space: nowrap;
+      font-family: 'Noto Sans SC', sans-serif;
+      flex-shrink: 0;
+    }
+    .type-direct { background: rgba(0,255,128,0.1); color: #00ff80; border: 1px solid rgba(0,255,128,0.25); }
+    .type-metaphor { background: rgba(255,165,0,0.1); color: #ffa500; border: 1px solid rgba(255,165,0,0.25); }
+    .type-emotion { background: rgba(255,45,120,0.1); color: #ff2d78; border: 1px solid rgba(255,45,120,0.25); }
+    .type-verb { background: rgba(0,245,255,0.1); color: var(--neon); border: 1px solid rgba(0,245,255,0.25); }
+
+    .name-reason {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .score-item { font-size: 0.75rem; }
+    .score-label { color: var(--text-muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .score-val { color: var(--neon); font-weight: 700; font-family: 'Orbitron', monospace; font-size: 0.7rem; }
+    .score-bar-wrap { background: rgba(255,255,255,0.06); border-radius: 3px; height: 4px; }
+    .score-bar {
+      height: 4px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--neon2), var(--neon));
+      box-shadow: 0 0 6px rgba(0,245,255,0.4);
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .total-score {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.78rem;
+      color: var(--neon);
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .feasibility {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .badge { font-size: 0.68rem; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
+    .badge-good { background: rgba(0,255,128,0.08); color: #00ff80; border: 1px solid rgba(0,255,128,0.2); }
+    .badge-mid { background: rgba(255,165,0,0.08); color: #ffa500; border: 1px solid rgba(255,165,0,0.2); }
+    .badge-bad { background: rgba(255,45,120,0.08); color: #ff2d78; border: 1px solid rgba(255,45,120,0.2); }
+
+    /* 评估框架 */
+    .framework-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 700px) { .framework-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .framework-grid { grid-template-columns: 1fr; } }
+
+    .framework-item {
+      background: rgba(0,245,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .framework-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--neon2), var(--neon));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .framework-item:hover { border-color: rgba(0,245,255,0.3); }
+    .framework-item:hover::before { opacity: 1; }
+
+    .framework-item h4 {
+      font-size: 0.8rem;
+      color: var(--neon);
+      margin-bottom: 8px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 700;
+    }
+    .framework-item p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .framework-item .dim-score {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.65rem;
+      color: rgba(0,245,255,0.4);
+      margin-top: 8px;
+      letter-spacing: 0.08em;
+    }
+
+    /* 加载动画 */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .framework-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    @media (max-width: 500px) { .framework-grid { grid-template-columns: 1fr; } }
-    .framework-item { background: #fafbff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
-    .framework-item h4 { font-size: 0.85rem; color: var(--primary); margin-bottom: 6px; }
-    .framework-item p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: #2d3436; color: white; padding: 10px 20px; border-radius: 8px; font-size: 0.875rem; transition: transform 0.3s; z-index: 1000; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(70px);
+      background: rgba(10,22,40,0.95);
+      color: var(--neon);
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--glow);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      z-index: 999;
+      backdrop-filter: blur(10px);
+    }
     .toast.show { transform: translateX(-50%) translateY(0); }
-    .rank-badge { display: inline-block; width: 22px; height: 22px; border-radius: 50%; font-size: 0.72rem; font-weight: 700; text-align: center; line-height: 22px; margin-right: 6px; }
-    .rank-1 { background: #ffd700; color: #7a5c00; }
-    .rank-2 { background: #c0c0c0; color: #555; }
-    .rank-3 { background: #cd7f32; color: #fff; }
-    .rank-other { background: #f0eeff; color: var(--primary); }
-    .section-tip { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px; }
+
+    /* 数字计数器动效 */
+    .counter {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.72rem;
+      color: rgba(0,245,255,0.5);
+      letter-spacing: 0.1em;
+    }
+
+    /* 分区标题 */
+    .section-label {
+      font-size: 0.72rem;
+      color: rgba(0,245,255,0.5);
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 0.1em;
+      margin-bottom: 14px;
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>🏷️ 产品功能命名生成器</h1>
-  <p>输入功能描述，生成 10 个多维度命名方案并智能评分</p>
+  <div class="header-chip">AI · Naming System · v2.0</div>
+  <h1>产品功能命名生成器</h1>
+  <p>输入功能描述 · 生成 10 个多维度命名方案 · 智能评分排序</p>
+  <div class="scan-line"></div>
 </header>
 
 <div class="container">
 
+  <!-- 输入区 -->
   <div class="card">
-    <h2>✏️ 输入信息</h2>
-    <p class="section-tip">快速体验：点击下方示例场景自动填充</p>
+    <div class="card-title">⬡ INPUT PARAMETERS</div>
+    <p class="section-label">// 快速体验：点击预设场景</p>
     <div class="examples">
-      <span class="example-tag" onclick="fillExample('smart')">🤖 智能推荐系统</span>
-      <span class="example-tag" onclick="fillExample('social')">💬 社交分享功能</span>
-      <span class="example-tag" onclick="fillExample('data')">📊 数据看板</span>
+      <span class="example-tag" onclick="fillExample('smart')">◈ 智能推荐系统</span>
+      <span class="example-tag" onclick="fillExample('social')">◈ 社交分享功能</span>
+      <span class="example-tag" onclick="fillExample('data')">◈ 数据看板</span>
     </div>
 
     <label>功能描述 *</label>
-    <textarea id="description" placeholder="例如：用户购买后自动推荐相似商品，根据历史行为个性化展示…"></textarea>
+    <textarea id="description" placeholder="描述产品功能的核心用途和用户价值，例如：根据历史行为推荐相关商品…"></textarea>
 
     <div class="row">
       <div>
         <label>品牌调性（可选）</label>
         <select id="tone">
-          <option value="">-- 不限 --</option>
+          <option value="">— 不限 —</option>
           <option value="科技感">🚀 科技感 · 未来感</option>
           <option value="亲切温暖">🤗 亲切温暖 · 生活化</option>
           <option value="专业严谨">💼 专业严谨 · 商务</option>
@@ -138,39 +543,82 @@
       </div>
       <div>
         <label>目标用户（可选）</label>
-        <input id="audience" type="text" placeholder="例如：25-35岁职场白领、学生党…" />
+        <input id="audience" type="text" placeholder="例如：25-35岁职场白领、中小企业主…" />
       </div>
     </div>
 
-    <button class="btn btn-primary" id="generateBtn" onclick="generate()">
-      <span id="btnText">🚀 生成命名方案</span>
+    <button class="btn-primary" id="generateBtn" onclick="generate()">
+      <span id="btnText">▶ GENERATE NAMES</span>
     </button>
   </div>
 
+  <!-- 结果区 -->
   <div id="results">
     <div class="card">
       <div class="results-header">
-        <h2 id="resultTitle">💡 命名方案（共10个）</h2>
+        <div class="card-title" style="margin-bottom:0">◈ NAMING RESULTS</div>
         <div class="filter-tabs">
-          <span class="tab active" onclick="filterNames('all', this)">全部</span>
+          <span class="tab active" onclick="filterNames('all', this)">ALL</span>
           <span class="tab" onclick="filterNames('direct', this)">直白型</span>
           <span class="tab" onclick="filterNames('metaphor', this)">隐喻型</span>
           <span class="tab" onclick="filterNames('emotion', this)">情感型</span>
           <span class="tab" onclick="filterNames('verb', this)">动词型</span>
         </div>
       </div>
+      <br/>
       <div class="names-grid" id="namesGrid"></div>
     </div>
 
+    <!-- 评估框架 -->
     <div class="card">
-      <h2>📋 命名评估框架说明</h2>
+      <div class="card-title">⬡ EVALUATION FRAMEWORK</div>
+      <p class="section-label">// 9 维度全面评估命名质量</p>
       <div class="framework-grid">
-        <div class="framework-item"><h4>🗣️ 易发音</h4><p>命名音节数（2-4音节最佳）、有无绕口组合、是否朗朗上口、方言发音兼容性</p></div>
-        <div class="framework-item"><h4>🧠 易记忆</h4><p>与已知词汇的关联度、视觉辨识度、是否有独特记忆钩子、节奏感</p></div>
-        <div class="framework-item"><h4>🎯 相关性</h4><p>命名与功能的语义契合度，用户看名字能否猜出功能大意，减少认知负担</p></div>
-        <div class="framework-item"><h4>✨ 品牌契合</h4><p>与品牌调性一致性、视觉延展性（Logo/图标）、家族命名系统融合度</p></div>
-        <div class="framework-item"><h4>©️ 商标风险</h4><p>是否为通用词汇（高风险）、是否已有同名竞品、造词独特性评估</p></div>
-        <div class="framework-item"><h4>🌍 国际化</h4><p>英文/拼音拼写难度、跨文化无歧义性、海外市场扩展潜力</p></div>
+        <div class="framework-item">
+          <h4>🗣️ 易发音</h4>
+          <p>音节数（2-4音节最佳）、发音节奏感、是否存在绕口组合、普通话与方言的发音兼容性、朗朗上口程度</p>
+          <div class="dim-score">WEIGHT: HIGH</div>
+        </div>
+        <div class="framework-item">
+          <h4>🧠 易记忆</h4>
+          <p>与已知词汇的语义关联度、视觉字形辨识度、是否存在独特记忆钩子、节奏韵律感、首字母缩写可用性</p>
+          <div class="dim-score">WEIGHT: HIGH</div>
+        </div>
+        <div class="framework-item">
+          <h4>🎯 功能相关性</h4>
+          <p>命名与核心功能的语义契合度、用户看名猜功能的难易程度、是否降低用户认知负担、能否准确传递价值主张</p>
+          <div class="dim-score">WEIGHT: HIGH</div>
+        </div>
+        <div class="framework-item">
+          <h4>✨ 品牌契合度</h4>
+          <p>与整体品牌调性的一致性、在品牌家族命名系统中的融合度、视觉延展性（Logo/图标设计空间）、品牌联想正向性</p>
+          <div class="dim-score">WEIGHT: MEDIUM</div>
+        </div>
+        <div class="framework-item">
+          <h4>©️ 商标注册风险</h4>
+          <p>是否属于通用描述性词汇（高风险）、现有同名或近似商标数量、造词独特性与显著性、国际类别覆盖可行性</p>
+          <div class="dim-score">WEIGHT: MEDIUM</div>
+        </div>
+        <div class="framework-item">
+          <h4>🌍 国际化潜力</h4>
+          <p>英文/拼音拼写与发音难度、跨文化语义歧义风险、在目标海外市场的接受度、是否有负面联想或禁忌含义</p>
+          <div class="dim-score">WEIGHT: MEDIUM</div>
+        </div>
+        <div class="framework-item">
+          <h4>💡 创意独特性</h4>
+          <p>命名的新颖程度与差异化竞争力、是否存在竞品同类命名、造词方式的创造性（合成词/谐音/截词/混搭）</p>
+          <div class="dim-score">WEIGHT: MEDIUM</div>
+        </div>
+        <div class="framework-item">
+          <h4>📈 增长传播力</h4>
+          <p>口碑传播时的易讲述性、社交媒体话题标签（Hashtag）适用性、是否易于造句和二次创作、用户自发传播潜力</p>
+          <div class="dim-score">WEIGHT: LOW</div>
+        </div>
+        <div class="framework-item">
+          <h4>🔮 未来延展性</h4>
+          <p>命名是否会随功能演进而过时、能否随产品扩张延伸含义、系列化/矩阵化命名的扩展空间、长期品牌资产积累价值</p>
+          <div class="dim-score">WEIGHT: LOW</div>
+        </div>
       </div>
     </div>
   </div>
@@ -267,17 +715,14 @@ function genGenericNames(desc, tone) {
     ]
   };
 
-  // 根据调性调整权重选名
-  const result = [];
-  const types = ['direct', 'metaphor', 'emotion', 'verb'];
   const typeCount = { direct: 3, metaphor: 3, emotion: 2, verb: 2 };
-
   if (tone === '科技感') { typeCount.metaphor = 4; typeCount.direct = 3; typeCount.emotion = 1; typeCount.verb = 2; }
   else if (tone === '亲切温暖') { typeCount.emotion = 3; typeCount.direct = 3; typeCount.metaphor = 2; typeCount.verb = 2; }
   else if (tone === '活泼有趣') { typeCount.verb = 3; typeCount.emotion = 3; typeCount.direct = 2; typeCount.metaphor = 2; }
   else if (tone === '专业严谨') { typeCount.direct = 4; typeCount.metaphor = 3; typeCount.emotion = 1; typeCount.verb = 2; }
 
-  for (const t of types) {
+  const result = [];
+  for (const t of ['direct', 'metaphor', 'emotion', 'verb']) {
     const pool = pools[t] || [];
     const needed = typeCount[t] || 2;
     for (let i = 0; i < Math.min(needed, pool.length); i++) {
@@ -304,53 +749,49 @@ function calcTotal(scores) {
 
 function generate() {
   const desc = document.getElementById('description').value.trim();
-  if (!desc) { showToast('请输入功能描述！'); return; }
-
+  if (!desc) { showToast('⚠ 请输入功能描述'); return; }
   const tone = document.getElementById('tone').value;
   const btn = document.getElementById('generateBtn');
   const btnText = document.getElementById('btnText');
   btn.disabled = true;
-  btnText.innerHTML = '<span class="spinner"></span> 生成中…';
+  btnText.innerHTML = '<span class="spinner"></span>';
 
   setTimeout(() => {
     const scenario = detectScenario(desc);
-    allNames = scenario ? DB[scenario] : genGenericNames(desc, tone);
-
-    // 按综合评分排序
-    allNames = allNames.map(n => ({ ...n, total: calcTotal(n.scores) }))
+    allNames = (scenario ? DB[scenario] : genGenericNames(desc, tone))
+      .map(n => ({ ...n, total: calcTotal(n.scores) }))
       .sort((a, b) => b.total - a.total);
 
     renderNames(allNames);
     document.getElementById('results').style.display = 'block';
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
     btn.disabled = false;
-    btnText.textContent = '🔄 重新生成';
-    showToast('✅ 已生成10个命名方案！');
-  }, 800);
+    btnText.textContent = '▶ REGENERATE';
+    showToast('✓ 已生成 10 个命名方案');
+  }, 900);
 }
 
 function renderNames(names) {
   const grid = document.getElementById('namesGrid');
+  const feaLabels = {
+    pronunciation: { good: '✓ 易发音', mid: '△ 发音一般', bad: '✗ 较难发音' },
+    memory: { good: '✓ 易记忆', mid: '△ 记忆一般', bad: '✗ 较难记忆' },
+    trademark: { good: '✓ 商标低风险', mid: '△ 需核查商标', bad: '✗ 商标高风险' }
+  };
   grid.innerHTML = names.map((n, i) => {
     const rank = i + 1;
     const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
-    const feaLabels = {
-      pronunciation: { good: '✅ 易发音', mid: '⚠️ 发音一般', bad: '❌ 较难发音' },
-      memory: { good: '✅ 易记忆', mid: '⚠️ 记忆一般', bad: '❌ 较难记忆' },
-      trademark: { good: '✅ 商标低风险', mid: '⚠️ 商标需核查', bad: '❌ 商标高风险' }
-    };
     const scoreHtml = SCORE_DIMS.map(d => `
       <div class="score-item">
-        <div class="score-label"><span>${d.label}</span><span>${n.scores[d.key]}</span></div>
-        <div class="score-bar-wrap"><div class="score-bar" style="width:${n.scores[d.key]}%"></div></div>
+        <div class="score-label"><span>${d.label}</span><span class="score-val">${n.scores[d.key]}</span></div>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:0%" data-w="${n.scores[d.key]}%"></div></div>
       </div>`).join('');
     const feaHtml = Object.entries(n.feasibility).map(([k, v]) =>
       `<span class="badge badge-${v}">${feaLabels[k][v]}</span>`).join('');
     return `
       <div class="name-card" data-type="${n.type}" onclick="copyName('${n.name}', this)">
         <div class="name-top">
-          <div style="display:flex;align-items:center">
+          <div class="name-left">
             <span class="rank-badge ${rankClass}">${rank}</span>
             <span class="name-text">${n.name}</span>
           </div>
@@ -358,23 +799,29 @@ function renderNames(names) {
         </div>
         <p class="name-reason">${n.reason}</p>
         <div class="scores">${scoreHtml}</div>
-        <div class="total-score">综合评分：${n.total} / 100</div>
+        <div class="total-score">SCORE: ${n.total} / 100</div>
         <div class="feasibility">${feaHtml}</div>
       </div>`;
   }).join('');
+
+  // 动画展开进度条
+  requestAnimationFrame(() => {
+    grid.querySelectorAll('.score-bar').forEach(bar => {
+      bar.style.width = bar.dataset.w;
+    });
+  });
 }
 
 function filterNames(type, tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   tab.classList.add('active');
-  const filtered = type === 'all' ? allNames : allNames.filter(n => n.type === type);
-  renderNames(filtered);
+  renderNames(type === 'all' ? allNames : allNames.filter(n => n.type === type));
 }
 
 function copyName(name, card) {
   navigator.clipboard.writeText(name).then(() => {
     card.classList.add('selected');
-    showToast(`已复制：${name}`);
+    showToast(`✓ 已复制：${name}`);
     setTimeout(() => card.classList.remove('selected'), 1500);
   });
 }
