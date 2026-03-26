@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>产品功能命名生成器</title>
+  <style>
+    :root {
+      --primary: #6c63ff;
+      --primary-light: #a29bfe;
+      --bg: #f8f9ff;
+      --card: #ffffff;
+      --text: #2d3436;
+      --text-muted: #636e72;
+      --border: #dfe6e9;
+      --radius: 12px;
+      --shadow: 0 4px 20px rgba(108,99,255,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, #a29bfe 100%);
+      color: white;
+      padding: 40px 24px 60px;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    header p { opacity: 0.85; font-size: 1rem; }
+    .container { max-width: 900px; margin: -32px auto 40px; padding: 0 16px; }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.1rem; color: var(--primary); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    textarea, input, select {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.95rem; font-family: inherit; color: var(--text); background: #fafbff;
+      transition: border-color 0.2s; margin-bottom: 16px;
+    }
+    textarea:focus, input:focus, select:focus { outline: none; border-color: var(--primary); background: white; }
+    textarea { resize: vertical; min-height: 90px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #a29bfe); color: white; width: 100%; justify-content: center; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.35); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .examples { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .example-tag { padding: 5px 12px; background: #f0eeff; color: var(--primary); border-radius: 20px; font-size: 0.8rem; cursor: pointer; border: 1px solid var(--primary-light); transition: all 0.15s; }
+    .example-tag:hover { background: var(--primary); color: white; }
+    #results { display: none; }
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .results-header h2 { color: var(--text); font-size: 1.2rem; }
+    .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab { padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--text-muted); transition: all 0.15s; }
+    .tab.active, .tab:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    .names-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .name-card { background: white; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.2s; cursor: pointer; }
+    .name-card:hover { border-color: var(--primary); box-shadow: 0 4px 16px rgba(108,99,255,0.12); transform: translateY(-2px); }
+    .name-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+    .name-text { font-size: 1.3rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
+    .name-type { font-size: 0.72rem; padding: 3px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; margin-left: 8px; flex-shrink: 0; }
+    .type-direct { background: #e3f9e5; color: #2d9e42; }
+    .type-metaphor { background: #fff3e0; color: #e67e22; }
+    .type-emotion { background: #fce4ec; color: #c0392b; }
+    .type-verb { background: #e8f4fd; color: #2980b9; }
+    .name-reason { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
+    .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .score-item { font-size: 0.78rem; }
+    .score-label { color: var(--text-muted); margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .score-bar-wrap { background: #eee; border-radius: 4px; height: 5px; }
+    .score-bar { height: 5px; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--primary-light)); transition: width 0.8s ease; }
+    .feasibility { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
+    .badge-good { background: #e3f9e5; color: #2d9e42; }
+    .badge-mid { background: #fff3e0; color: #e67e22; }
+    .badge-bad { background: #fce4ec; color: #c0392b; }
+    .total-score { font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-top: 10px; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .framework-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (max-width: 500px) { .framework-grid { grid-template-columns: 1fr; } }
+    .framework-item { background: #fafbff; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .framework-item h4 { font-size: 0.85rem; color: var(--primary); margin-bottom: 6px; }
+    .framework-item p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: #2d3436; color: white; padding: 10px 20px; border-radius: 8px; font-size: 0.875rem; transition: transform 0.3s; z-index: 1000; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .rank-badge { display: inline-block; width: 22px; height: 22px; border-radius: 50%; font-size: 0.72rem; font-weight: 700; text-align: center; line-height: 22px; margin-right: 6px; }
+    .rank-1 { background: #ffd700; color: #7a5c00; }
+    .rank-2 { background: #c0c0c0; color: #555; }
+    .rank-3 { background: #cd7f32; color: #fff; }
+    .rank-other { background: #f0eeff; color: var(--primary); }
+    .section-tip { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏷️ 产品功能命名生成器</h1>
+  <p>输入功能描述，生成 10 个多维度命名方案并智能评分</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>✏️ 输入信息</h2>
+    <p class="section-tip">快速体验：点击下方示例场景自动填充</p>
+    <div class="examples">
+      <span class="example-tag" onclick="fillExample('smart')">🤖 智能推荐系统</span>
+      <span class="example-tag" onclick="fillExample('social')">💬 社交分享功能</span>
+      <span class="example-tag" onclick="fillExample('data')">📊 数据看板</span>
+    </div>
+
+    <label>功能描述 *</label>
+    <textarea id="description" placeholder="例如：用户购买后自动推荐相似商品，根据历史行为个性化展示…"></textarea>
+
+    <div class="row">
+      <div>
+        <label>品牌调性（可选）</label>
+        <select id="tone">
+          <option value="">-- 不限 --</option>
+          <option value="科技感">🚀 科技感 · 未来感</option>
+          <option value="亲切温暖">🤗 亲切温暖 · 生活化</option>
+          <option value="专业严谨">💼 专业严谨 · 商务</option>
+          <option value="活泼有趣">🎉 活泼有趣 · 年轻化</option>
+          <option value="简洁极简">✨ 简洁极简 · 高端</option>
+          <option value="国际化">🌍 国际化 · 双语</option>
+        </select>
+      </div>
+      <div>
+        <label>目标用户（可选）</label>
+        <input id="audience" type="text" placeholder="例如：25-35岁职场白领、学生党…" />
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()">
+      <span id="btnText">🚀 生成命名方案</span>
+    </button>
+  </div>
+
+  <div id="results">
+    <div class="card">
+      <div class="results-header">
+        <h2 id="resultTitle">💡 命名方案（共10个）</h2>
+        <div class="filter-tabs">
+          <span class="tab active" onclick="filterNames('all', this)">全部</span>
+          <span class="tab" onclick="filterNames('direct', this)">直白型</span>
+          <span class="tab" onclick="filterNames('metaphor', this)">隐喻型</span>
+          <span class="tab" onclick="filterNames('emotion', this)">情感型</span>
+          <span class="tab" onclick="filterNames('verb', this)">动词型</span>
+        </div>
+      </div>
+      <div class="names-grid" id="namesGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 命名评估框架说明</h2>
+      <div class="framework-grid">
+        <div class="framework-item"><h4>🗣️ 易发音</h4><p>命名音节数（2-4音节最佳）、有无绕口组合、是否朗朗上口、方言发音兼容性</p></div>
+        <div class="framework-item"><h4>🧠 易记忆</h4><p>与已知词汇的关联度、视觉辨识度、是否有独特记忆钩子、节奏感</p></div>
+        <div class="framework-item"><h4>🎯 相关性</h4><p>命名与功能的语义契合度，用户看名字能否猜出功能大意，减少认知负担</p></div>
+        <div class="framework-item"><h4>✨ 品牌契合</h4><p>与品牌调性一致性、视觉延展性（Logo/图标）、家族命名系统融合度</p></div>
+        <div class="framework-item"><h4>©️ 商标风险</h4><p>是否为通用词汇（高风险）、是否已有同名竞品、造词独特性评估</p></div>
+        <div class="framework-item"><h4>🌍 国际化</h4><p>英文/拼音拼写难度、跨文化无歧义性、海外市场扩展潜力</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const EXAMPLES = {
+  smart: { description: '用户购买后，系统根据历史行为和偏好自动推荐相似或互补商品，提升复购率', tone: '科技感', audience: '25-35岁电商用户' },
+  social: { description: '用户可以一键将自己的学习成果、成就徽章分享到朋友圈或微信群，带好友裂变', tone: '活泼有趣', audience: '大学生和职场新人' },
+  data: { description: '为商家提供实时销售数据可视化看板，包含趋势图、转化漏斗、用户画像等核心指标', tone: '专业严谨', audience: '中小企业主和运营负责人' }
+};
+
+function fillExample(key) {
+  const e = EXAMPLES[key];
+  document.getElementById('description').value = e.description;
+  document.getElementById('tone').value = e.tone;
+  document.getElementById('audience').value = e.audience;
+}
+
+const TYPE_LABEL = { direct: '直白型', metaphor: '隐喻型', emotion: '情感型', verb: '动词型' };
+const TYPE_CLASS = { direct: 'type-direct', metaphor: 'type-metaphor', emotion: 'type-emotion', verb: 'type-verb' };
+const SCORE_DIMS = [
+  { key: 'pronunciation', label: '易发音' },
+  { key: 'memory', label: '易记忆' },
+  { key: 'relevance', label: '相关性' },
+  { key: 'brand', label: '品牌感' }
+];
+
+const DB = {
+  smart: [
+    { name: '慧推', type: 'direct', reason: '「慧」取智慧之意，「推」直指推荐功能，两字简洁有力，读音流畅自然。', scores: { pronunciation: 95, memory: 90, relevance: 88, brand: 78 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '知味', type: 'metaphor', reason: '借「知味」比喻系统懂你口味，隐喻个性化推荐，文化底蕴与科技感兼具。', scores: { pronunciation: 92, memory: 88, relevance: 82, brand: 85 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '心选', type: 'emotion', reason: '「心」传递温度感，「选」点明功能，仿佛贴心朋友帮你挑选，情感共鸣强。', scores: { pronunciation: 95, memory: 92, relevance: 85, brand: 88 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: 'PickUp', type: 'verb', reason: '英文动词，含「捡起你喜欢的」双关，年轻用户接受度高，国际化友好。', scores: { pronunciation: 88, memory: 85, relevance: 80, brand: 72 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } },
+    { name: '探知', type: 'verb', reason: '探索+感知的组合，强调系统主动发现用户喜好的智能过程，行动感强。', scores: { pronunciation: 90, memory: 82, relevance: 86, brand: 80 }, feasibility: { pronunciation: 'good', memory: 'mid', trademark: 'good' } },
+    { name: '灵犀', type: 'metaphor', reason: '取「心有灵犀一点通」，传递系统与用户之间的默契感，文化内涵丰富。', scores: { pronunciation: 88, memory: 95, relevance: 75, brand: 92 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '为你选', type: 'direct', reason: '口语化直白表达，用户一眼看懂功能，亲切自然，降低认知门槛。', scores: { pronunciation: 95, memory: 90, relevance: 95, brand: 65 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } },
+    { name: 'Tailr', type: 'metaphor', reason: '源自Tailor（裁缝），隐喻量身定制推荐，简洁现代，商标注册空间较好。', scores: { pronunciation: 78, memory: 80, relevance: 78, brand: 88 }, feasibility: { pronunciation: 'mid', memory: 'mid', trademark: 'good' } },
+    { name: '猜你爱', type: 'direct', reason: '拟人化表达，带有游戏感，互动性强，用户容易产生情感共鸣。', scores: { pronunciation: 95, memory: 95, relevance: 92, brand: 70 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '感知力', type: 'direct', reason: '强调功能的智能感知能力，传递技术实力和精准度，适合to B场景。', scores: { pronunciation: 88, memory: 82, relevance: 85, brand: 78 }, feasibility: { pronunciation: 'good', memory: 'mid', trademark: 'good' } }
+  ],
+  social: [
+    { name: '传光', type: 'metaphor', reason: '像光一样传播，隐喻内容快速扩散，充满正能量和温度感。', scores: { pronunciation: 92, memory: 88, relevance: 80, brand: 85 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+    { name: '炸圈', type: 'verb', reason: '网络热词，年轻用户共鸣强，传达内容爆火破圈的感受，活力十足。', scores: { pronunciation: 95, memory: 95, relevance: 88, brand: 75 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: 'ShineOn', type: 'emotion', reason: '让成就发光照耀他人，情感正向，国际化潜力强，视觉感好。', scores: { pronunciation: 85, memory: 88, relevance: 82, brand: 85 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '晒光', type: 'direct', reason: '「晒」即分享，「光」代表成就荣耀，直白而不失美感，朗朗上口。', scores: { pronunciation: 92, memory: 90, relevance: 90, brand: 80 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+    { name: '声浪', type: 'metaphor', reason: '声音成浪传播，比喻成就引发涟漪效应，动感活力，记忆点强。', scores: { pronunciation: 90, memory: 88, relevance: 78, brand: 88 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '圈动', type: 'verb', reason: '在朋友圈引发互动，简洁有力，社交属性鲜明，商标注册空间好。', scores: { pronunciation: 90, memory: 85, relevance: 88, brand: 78 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+    { name: '荣耀时刻', type: 'emotion', reason: '情感共鸣强烈，让用户感受到每次分享都是高光时刻，正向激励。', scores: { pronunciation: 88, memory: 92, relevance: 85, brand: 72 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } },
+    { name: 'Ripple', type: 'metaphor', reason: '水波涟漪隐喻内容扩散，国际化优秀，视觉延展性强。', scores: { pronunciation: 88, memory: 85, relevance: 80, brand: 90 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '喊话', type: 'verb', reason: '口语化动词，传达主动传播的行动感，年轻人常用语，亲和力强。', scores: { pronunciation: 95, memory: 95, relevance: 85, brand: 68 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } },
+    { name: '破壁', type: 'metaphor', reason: '打破信息壁垒广泛传播，极具张力，裂变感满满，品牌记忆强。', scores: { pronunciation: 90, memory: 90, relevance: 78, brand: 85 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } }
+  ],
+  data: [
+    { name: '数脉', type: 'metaphor', reason: '数据如血脉流动，隐喻实时数据流，专业感与生命力兼具，适合B端产品。', scores: { pronunciation: 88, memory: 90, relevance: 85, brand: 92 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+    { name: '洞见台', type: 'direct', reason: '直白表达数据洞察功能，「台」传递平台感和专业性，商务感强。', scores: { pronunciation: 90, memory: 85, relevance: 92, brand: 78 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: 'DataLens', type: 'metaphor', reason: '数据透镜，视觉化隐喻洞察数据，国际范儿十足，适合SaaS产品。', scores: { pronunciation: 82, memory: 85, relevance: 88, brand: 88 }, feasibility: { pronunciation: 'mid', memory: 'good', trademark: 'mid' } },
+    { name: '智镜', type: 'metaphor', reason: '智慧之镜，映照经营全貌，东方美学与科技感融合，商标空间好。', scores: { pronunciation: 90, memory: 92, relevance: 85, brand: 90 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+    { name: '全景台', type: 'direct', reason: '强调数据全貌视角，「台」字给人稳重可信赖感，功能表达清晰。', scores: { pronunciation: 90, memory: 85, relevance: 90, brand: 75 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: '见微', type: 'metaphor', reason: '取「见微知著」，传达从细节数据洞察大趋势的能力，文化底蕴深。', scores: { pronunciation: 88, memory: 90, relevance: 82, brand: 88 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+    { name: '经营雷达', type: 'metaphor', reason: '雷达扫描全局，直观传递实时监控和预警功能，商家易理解。', scores: { pronunciation: 85, memory: 92, relevance: 88, brand: 80 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+    { name: 'PulseBoard', type: 'metaphor', reason: '经营脉搏看板，实时感强，适合国际化SaaS产品，视觉延展好。', scores: { pronunciation: 80, memory: 82, relevance: 85, brand: 88 }, feasibility: { pronunciation: 'mid', memory: 'mid', trademark: 'good' } },
+    { name: '一眼明', type: 'direct', reason: '口语化承诺，强调数据可视化的直观性，商家一眼看清经营状况。', scores: { pronunciation: 95, memory: 95, relevance: 88, brand: 65 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } },
+    { name: '明略', type: 'direct', reason: '明智谋略，传递数据赋能决策的价值，专业大气，商标注册空间好。', scores: { pronunciation: 90, memory: 85, relevance: 80, brand: 88 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } }
+  ]
+};
+
+function genGenericNames(desc, tone) {
+  const pools = {
+    direct: [
+      { name: '速启', reason: '强调快速启动和高效执行，简洁有力，适合工具型功能。', scores: { pronunciation: 92, memory: 85, relevance: 80, brand: 78 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+      { name: '一触达', reason: '一触即达，强调功能的便捷性和即时性，用户体感直接。', scores: { pronunciation: 88, memory: 88, relevance: 88, brand: 72 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+      { name: '通达', reason: '四通八达，传递顺畅无阻的用户体验，简洁且有内涵。', scores: { pronunciation: 92, memory: 85, relevance: 82, brand: 80 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } },
+      { name: '全通', reason: '全面畅通，直白表达功能覆盖面广、使用顺滑的特点。', scores: { pronunciation: 90, memory: 82, relevance: 85, brand: 75 }, feasibility: { pronunciation: 'good', memory: 'mid', trademark: 'mid' } }
+    ],
+    metaphor: [
+      { name: '引力场', reason: '像引力场一样吸引和聚合，隐喻功能的聚合与连接能力。', scores: { pronunciation: 85, memory: 90, relevance: 78, brand: 88 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+      { name: '星核', reason: '星球核心，隐喻功能是产品的核心引擎，科技感与力量感兼备。', scores: { pronunciation: 90, memory: 88, relevance: 75, brand: 90 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+      { name: '织网', reason: '编织关系网络，隐喻功能的连接和协作属性，自然生动。', scores: { pronunciation: 88, memory: 85, relevance: 80, brand: 82 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+      { name: '流光', reason: '光的流动，隐喻信息或体验的流畅传递，诗意且有辨识度。', scores: { pronunciation: 92, memory: 90, relevance: 72, brand: 92 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } }
+    ],
+    emotion: [
+      { name: '暖触', reason: '温暖的触感，情感化表达产品给用户带来的舒适体验。', scores: { pronunciation: 90, memory: 88, relevance: 75, brand: 85 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+      { name: '悦享', reason: '愉悦享受，传递使用功能时的愉快体验，正向情绪强。', scores: { pronunciation: 88, memory: 85, relevance: 78, brand: 82 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+      { name: '安心达', reason: '安心抵达目标，情感诉求强，适合强调安全感的功能场景。', scores: { pronunciation: 88, memory: 88, relevance: 82, brand: 78 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } }
+    ],
+    verb: [
+      { name: '启航', reason: '出发启程，动词隐喻，传递功能帮助用户开启新旅程的价值。', scores: { pronunciation: 92, memory: 90, relevance: 75, brand: 85 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'mid' } },
+      { name: '跃动', reason: '跳跃律动，强调功能的活力和动态特性，适合年轻化产品。', scores: { pronunciation: 90, memory: 88, relevance: 78, brand: 88 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'good' } },
+      { name: '聚焦', reason: '聚焦核心，动词直指功能帮助用户专注目标的价值，商务感强。', scores: { pronunciation: 88, memory: 85, relevance: 85, brand: 80 }, feasibility: { pronunciation: 'good', memory: 'good', trademark: 'bad' } }
+    ]
+  };
+
+  // 根据调性调整权重选名
+  const result = [];
+  const types = ['direct', 'metaphor', 'emotion', 'verb'];
+  const typeCount = { direct: 3, metaphor: 3, emotion: 2, verb: 2 };
+
+  if (tone === '科技感') { typeCount.metaphor = 4; typeCount.direct = 3; typeCount.emotion = 1; typeCount.verb = 2; }
+  else if (tone === '亲切温暖') { typeCount.emotion = 3; typeCount.direct = 3; typeCount.metaphor = 2; typeCount.verb = 2; }
+  else if (tone === '活泼有趣') { typeCount.verb = 3; typeCount.emotion = 3; typeCount.direct = 2; typeCount.metaphor = 2; }
+  else if (tone === '专业严谨') { typeCount.direct = 4; typeCount.metaphor = 3; typeCount.emotion = 1; typeCount.verb = 2; }
+
+  for (const t of types) {
+    const pool = pools[t] || [];
+    const needed = typeCount[t] || 2;
+    for (let i = 0; i < Math.min(needed, pool.length); i++) {
+      result.push({ ...pool[i], type: t });
+    }
+  }
+  return result.slice(0, 10);
+}
+
+let allNames = [];
+
+function detectScenario(desc) {
+  const d = desc.toLowerCase();
+  if (d.includes('推荐') || d.includes('个性化') || d.includes('猜你') || d.includes('recommend')) return 'smart';
+  if (d.includes('分享') || d.includes('朋友圈') || d.includes('社交') || d.includes('裂变') || d.includes('share')) return 'social';
+  if (d.includes('看板') || d.includes('数据') || d.includes('仪表盘') || d.includes('报表') || d.includes('dashboard')) return 'data';
+  return null;
+}
+
+function calcTotal(scores) {
+  const vals = Object.values(scores);
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
+function generate() {
+  const desc = document.getElementById('description').value.trim();
+  if (!desc) { showToast('请输入功能描述！'); return; }
+
+  const tone = document.getElementById('tone').value;
+  const btn = document.getElementById('generateBtn');
+  const btnText = document.getElementById('btnText');
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span> 生成中…';
+
+  setTimeout(() => {
+    const scenario = detectScenario(desc);
+    allNames = scenario ? DB[scenario] : genGenericNames(desc, tone);
+
+    // 按综合评分排序
+    allNames = allNames.map(n => ({ ...n, total: calcTotal(n.scores) }))
+      .sort((a, b) => b.total - a.total);
+
+    renderNames(allNames);
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    btn.disabled = false;
+    btnText.textContent = '🔄 重新生成';
+    showToast('✅ 已生成10个命名方案！');
+  }, 800);
+}
+
+function renderNames(names) {
+  const grid = document.getElementById('namesGrid');
+  grid.innerHTML = names.map((n, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+    const feaLabels = {
+      pronunciation: { good: '✅ 易发音', mid: '⚠️ 发音一般', bad: '❌ 较难发音' },
+      memory: { good: '✅ 易记忆', mid: '⚠️ 记忆一般', bad: '❌ 较难记忆' },
+      trademark: { good: '✅ 商标低风险', mid: '⚠️ 商标需核查', bad: '❌ 商标高风险' }
+    };
+    const scoreHtml = SCORE_DIMS.map(d => `
+      <div class="score-item">
+        <div class="score-label"><span>${d.label}</span><span>${n.scores[d.key]}</span></div>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${n.scores[d.key]}%"></div></div>
+      </div>`).join('');
+    const feaHtml = Object.entries(n.feasibility).map(([k, v]) =>
+      `<span class="badge badge-${v}">${feaLabels[k][v]}</span>`).join('');
+    return `
+      <div class="name-card" data-type="${n.type}" onclick="copyName('${n.name}', this)">
+        <div class="name-top">
+          <div style="display:flex;align-items:center">
+            <span class="rank-badge ${rankClass}">${rank}</span>
+            <span class="name-text">${n.name}</span>
+          </div>
+          <span class="name-type ${TYPE_CLASS[n.type]}">${TYPE_LABEL[n.type]}</span>
+        </div>
+        <p class="name-reason">${n.reason}</p>
+        <div class="scores">${scoreHtml}</div>
+        <div class="total-score">综合评分：${n.total} / 100</div>
+        <div class="feasibility">${feaHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function filterNames(type, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  const filtered = type === 'all' ? allNames : allNames.filter(n => n.type === type);
+  renderNames(filtered);
+}
+
+function copyName(name, card) {
+  navigator.clipboard.writeText(name).then(() => {
+    card.classList.add('selected');
+    showToast(`已复制：${name}`);
+    setTimeout(() => card.classList.remove('selected'), 1500);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
