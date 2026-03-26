@@ -534,6 +534,31 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
+    /* API 配置区 */
+    #apiConfig summary { display:none; }
+    #apiConfig[open] summary { display:list-item; }
+    details#apiConfig { border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .api-summary {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,245,255,0.02);
+      transition: color 0.2s;
+    }
+    .api-summary:hover { color: var(--neon); }
+    .api-summary::marker { display: none; }
+    details#apiConfig summary { display: block; }
+    .api-body { padding: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+    .api-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 500px) { .api-row { grid-template-columns: 1fr; } }
+
     /* 品牌调性选择器 */
     .tone-grid {
       display: grid;
@@ -682,6 +707,31 @@
         <input id="audience" type="text" placeholder="例如：25-35岁职场白领、中小企业主…" />
       </div>
     </div>
+
+    <!-- API 配置 -->
+    <details id="apiConfig" style="margin-top:16px">
+      <summary class="api-summary">⚙ AI 配置（接入真实大模型）</summary>
+      <div class="api-body">
+        <div class="api-row">
+          <div>
+            <label>API Base URL</label>
+            <input id="apiBase" type="text" placeholder="https://api.openai.com/v1" value="https://api.openai.com/v1"/>
+          </div>
+          <div>
+            <label>Model</label>
+            <input id="apiModel" type="text" placeholder="gpt-4o-mini" value="gpt-4o-mini"/>
+          </div>
+        </div>
+        <div>
+          <label>API Key <span style="color:var(--text-muted);font-size:0.75rem">（仅存于浏览器本地，不上传）</span></label>
+          <div style="display:flex;gap:8px">
+            <input id="apiKey" type="password" placeholder="sk-..." style="flex:1"/>
+            <button onclick="saveApiConfig()" style="background:rgba(0,245,255,0.1);border:1px solid var(--neon);color:var(--neon);padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-size:0.8rem">保存</button>
+          </div>
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:8px">兼容所有 OpenAI 格式接口：OpenAI / DeepSeek / 智谱 / 月之暗面 / 本地 Ollama 等。未配置时使用内置示例数据。</p>
+      </div>
+    </details>
 
     <button class="btn-primary" id="generateBtn" onclick="generate()">
       <span id="btnText">▶ GENERATE NAMES</span>
@@ -893,28 +943,132 @@ function calcTotal(scores) {
   return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 }
 
-function generate() {
+// ── API 配置持久化 ───────────────────────────────────────
+function saveApiConfig() {
+  localStorage.setItem('ng_api_base', document.getElementById('apiBase').value.trim());
+  localStorage.setItem('ng_api_key',  document.getElementById('apiKey').value.trim());
+  localStorage.setItem('ng_api_model',document.getElementById('apiModel').value.trim());
+  showToast('✓ 配置已保存到本地');
+}
+function loadApiConfig() {
+  const base  = localStorage.getItem('ng_api_base');
+  const key   = localStorage.getItem('ng_api_key');
+  const model = localStorage.getItem('ng_api_model');
+  if (base)  document.getElementById('apiBase').value  = base;
+  if (key)   document.getElementById('apiKey').value   = key;
+  if (model) document.getElementById('apiModel').value = model;
+  // 有 key 时自动展开配置区
+  if (key) document.getElementById('apiConfig').open = true;
+}
+window.addEventListener('DOMContentLoaded', loadApiConfig);
+
+// ── AI 生成 Prompt ────────────────────────────────────────
+function buildPrompt(desc, tone, audience) {
+  return `你是一位顶级产品命名专家。请根据以下信息，为该产品功能生成 10 个命名方案。
+
+功能描述：${desc}
+品牌调性：${tone || '不限'}
+目标用户：${audience || '通用用户'}
+
+要求：
+1. 命名类型必须覆盖：直白型、隐喻型、情感型、动词型（各2-3个）
+2. 每个命名附上理由（1-2句话，说明命名逻辑和优势）
+3. 对每个命名的5个维度打分（0-100整数）：易发音、易记忆、相关性、品牌感
+4. 对每个命名评估可行性：pronunciation（发音）、memory（记忆）、trademark（商标）各为 good/mid/bad
+
+请严格返回如下 JSON 格式，不要有任何其他文字：
+[
+  {
+    "name": "命名",
+    "type": "直白型|隐喻型|情感型|动词型",
+    "reason": "命名理由",
+    "scores": { "pronunciation": 90, "memory": 85, "relevance": 88, "brand": 82 },
+    "feasibility": { "pronunciation": "good", "memory": "good", "trademark": "mid" }
+  }
+]`;
+}
+
+// ── 主生成函数 ────────────────────────────────────────────
+async function generate() {
   const desc = document.getElementById('description').value.trim();
   if (!desc) { showToast('⚠ 请输入功能描述'); return; }
-  const tone = document.getElementById('tone').value;
-  const btn = document.getElementById('generateBtn');
-  const btnText = document.getElementById('btnText');
-  btn.disabled = true;
-  btnText.innerHTML = '<span class="spinner"></span>';
+  const tone     = document.getElementById('tone').value;
+  const audience = document.getElementById('audience').value.trim();
+  const apiKey   = (localStorage.getItem('ng_api_key') || document.getElementById('apiKey').value).trim();
+  const apiBase  = (localStorage.getItem('ng_api_base') || document.getElementById('apiBase').value).trim() || 'https://api.openai.com/v1';
+  const apiModel = (localStorage.getItem('ng_api_model') || document.getElementById('apiModel').value).trim() || 'gpt-4o-mini';
 
-  setTimeout(() => {
+  const btn     = document.getElementById('generateBtn');
+  const btnText = document.getElementById('btnText');
+  btn.disabled  = true;
+
+  // 没有 API Key → 降级到内置数据
+  if (!apiKey) {
+    btnText.innerHTML = '<span class="spinner"></span>';
+    await new Promise(r => setTimeout(r, 800));
     const scenario = detectScenario(desc);
     allNames = (scenario ? DB[scenario] : genGenericNames(desc, tone))
+      .map(n => ({ ...n, total: calcTotal(n.scores) }))
+      .sort((a, b) => b.total - a.total);
+    renderNames(allNames);
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    btn.disabled = false;
+    btnText.textContent = '▶ REGENERATE';
+    showToast('💡 未配置 API Key，使用内置示例数据（点击⚙配置真实AI）');
+    return;
+  }
+
+  // 有 API Key → 调用真实 AI
+  btnText.innerHTML = '<span class="spinner"></span> AI 生成中…';
+  try {
+    const res = await fetch(`${apiBase}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: apiModel,
+        messages: [{ role: 'user', content: buildPrompt(desc, tone, audience) }],
+        temperature: 0.85,
+        max_tokens: 3000
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const raw  = data.choices?.[0]?.message?.content || '';
+
+    // 提取 JSON（容忍 markdown 代码块包裹）
+    const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(jsonStr); }
+    catch { throw new Error('AI 返回格式解析失败，请重试'); }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('AI 未返回有效命名数组');
+
+    allNames = parsed
+      .slice(0, 10)
       .map(n => ({ ...n, total: calcTotal(n.scores) }))
       .sort((a, b) => b.total - a.total);
 
     renderNames(allNames);
     document.getElementById('results').style.display = 'block';
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast(`✓ AI 已生成 ${allNames.length} 个命名方案`);
+
+  } catch (e) {
+    showToast(`✗ ${e.message}`);
+    console.error(e);
+  } finally {
     btn.disabled = false;
     btnText.textContent = '▶ REGENERATE';
-    showToast('✓ 已生成 10 个命名方案');
-  }, 900);
+  }
 }
 
 function renderNames(names) {
