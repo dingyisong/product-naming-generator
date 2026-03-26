@@ -291,6 +291,54 @@
       gap: 16px;
     }
 
+    /* 第一名全宽大卡片 */
+    .name-card.rank-first {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 28px 32px;
+      background: linear-gradient(135deg, rgba(0,245,255,0.07) 0%, rgba(123,47,255,0.06) 100%);
+      border-color: rgba(0,245,255,0.4);
+      box-shadow: 0 0 40px rgba(0,245,255,0.12), 0 0 80px rgba(123,47,255,0.08), inset 0 0 40px rgba(0,245,255,0.03);
+    }
+    @media (max-width: 600px) {
+      .name-card.rank-first { grid-template-columns: 1fr; }
+    }
+    .name-card.rank-first::before {
+      opacity: 1;
+      background: linear-gradient(90deg, transparent, var(--neon) 30%, var(--neon2) 70%, transparent);
+      height: 2px;
+    }
+    .name-card.rank-first .name-text {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #fff 0%, var(--neon) 60%, var(--neon2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .name-card.rank-first .name-reason {
+      font-size: 0.9rem;
+      color: rgba(232,244,255,0.75);
+      line-height: 1.7;
+    }
+    .name-card.rank-first .total-score {
+      font-size: 0.95rem;
+    }
+    .first-left { display: flex; flex-direction: column; justify-content: space-between; }
+    .first-right { display: flex; flex-direction: column; justify-content: space-between; }
+    .first-crown {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.65rem;
+      color: #ffd700;
+      letter-spacing: 0.15em;
+      margin-bottom: 12px;
+    }
+    .first-crown svg { width: 16px; height: 16px; }
+
     .name-card {
       background: rgba(0,245,255,0.02);
       border: 1px solid var(--border);
@@ -876,6 +924,7 @@ function renderNames(names) {
     memory: { good: '✓ 易记忆', mid: '△ 记忆一般', bad: '✗ 较难记忆' },
     trademark: { good: '✓ 商标低风险', mid: '△ 需核查商标', bad: '✗ 商标高风险' }
   };
+
   grid.innerHTML = names.map((n, i) => {
     const rank = i + 1;
     const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
@@ -886,6 +935,37 @@ function renderNames(names) {
       </div>`).join('');
     const feaHtml = Object.entries(n.feasibility).map(([k, v]) =>
       `<span class="badge badge-${v}">${feaLabels[k][v]}</span>`).join('');
+
+    if (rank === 1) {
+      // 第一名：全宽大卡片，左右分栏
+      return `
+        <div class="name-card rank-first" data-type="${n.type}" onclick="copyName('${n.name}', this)">
+          <div class="first-left">
+            <div>
+              <div class="first-crown">
+                <svg viewBox="0 0 24 24" fill="#ffd700" stroke="none"><path d="M2 20h20v2H2zM3 9l4 3 5-7 5 7 4-3-2 9H5z"/></svg>
+                TOP RANKED · BEST MATCH
+              </div>
+              <div class="name-top">
+                <div class="name-left">
+                  <span class="rank-badge rank-1">1</span>
+                  <span class="name-text">${n.name}</span>
+                </div>
+                <span class="name-type ${TYPE_CLASS[n.type]}">${TYPE_LABEL[n.type]}</span>
+              </div>
+              <p class="name-reason" style="margin-top:14px">${n.reason}</p>
+            </div>
+            <div class="feasibility" style="margin-top:16px">${feaHtml}</div>
+          </div>
+          <div class="first-right">
+            <div class="scores" style="grid-template-columns:1fr 1fr;gap:12px">${scoreHtml}</div>
+            <div class="total-score" style="margin-top:16px;font-size:1.1rem">
+              TOTAL SCORE：<span style="font-size:1.6rem;color:var(--neon)">${n.total}</span> <span style="font-size:0.75rem;color:var(--text-muted)">/ 100</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
     return `
       <div class="name-card" data-type="${n.type}" onclick="copyName('${n.name}', this)">
         <div class="name-top">
